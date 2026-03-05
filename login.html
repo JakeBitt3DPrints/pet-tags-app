@@ -8,64 +8,43 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
-
-    <div class="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border border-white">
+    <div class="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center">
         <div class="text-5xl mb-4">🔑</div>
         <h1 class="text-3xl font-black mb-2 italic text-slate-800">Pet Portal</h1>
         <p class="text-slate-500 mb-8 text-sm">Enter your email to receive a login link.</p>
-        
-        <div class="space-y-4">
-            <input id="email" type="email" placeholder="email@example.com" class="w-full p-5 rounded-2xl border border-slate-200 bg-slate-50 font-bold outline-none">
-            <button id="login-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-lg hover:bg-slate-800 transition-all uppercase tracking-widest">
-                Send Login Link
-            </button>
-        </div>
-
+        <input id="email" type="email" placeholder="email@example.com" class="w-full p-5 rounded-2xl border border-slate-200 bg-slate-50 font-bold mb-4 outline-none">
+        <button id="login-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-lg hover:bg-slate-800 uppercase tracking-widest transition-all">Send Login Link</button>
         <p id="msg" class="mt-6 text-sm font-bold text-blue-600"></p>
     </div>
 
     <script>
-        // Use a "try-catch" to see if there's an initialization error
-        try {
-            const supabaseUrl = 'https://aoiocladruutzrwwndlh.supabase.co';
-            const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
-            const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const supabaseUrl = 'https://aoiocladruutzrwwhdlh.supabase.co';
+        const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-            // This is the better way to link a button to a function
-            document.getElementById('login-btn').addEventListener('click', async () => {
-                const emailInput = document.getElementById('email');
-                const btn = document.getElementById('login-btn');
-                const msg = document.getElementById('msg');
-                const email = emailInput.value.trim();
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const email = document.getElementById('email').value.trim();
+            const btn = document.getElementById('login-btn');
+            const msg = document.getElementById('msg');
 
-                if (!email) {
-                    alert("Please enter an email!");
-                    return;
-                }
+            if (!email) return alert("Enter an email!");
+            btn.innerText = "SENDING...";
+            btn.disabled = true;
 
-                btn.innerText = "SENDING...";
-                btn.disabled = true;
-
-                const { error } = await supabase.auth.signInWithOtp({
-                    email: email,
-                    options: {
-                        emailRedirectTo: window.location.origin + '/dashboard.html'
-                    }
-                });
-
-                if (error) {
-                    msg.innerText = "Error: " + error.message;
-                    btn.innerText = "TRY AGAIN";
-                    btn.disabled = false;
-                } else {
-                    msg.innerText = "Check your email for the link!";
-                    btn.innerText = "SENT!";
-                }
+            const { error } = await supabase.auth.signInWithOtp({
+                email: email,
+                options: { emailRedirectTo: window.location.origin + '/dashboard.html' }
             });
 
-        } catch (e) {
-            console.error("Supabase failed to load:", e);
-        }
+            if (error) {
+                msg.innerText = "Error: " + error.message;
+                btn.innerText = "TRY AGAIN";
+                btn.disabled = false;
+            } else {
+                msg.innerText = "Check your email for the link!";
+                btn.innerText = "SENT!";
+            }
+        });
     </script>
 </body>
 </html>
