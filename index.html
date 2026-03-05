@@ -6,34 +6,55 @@
     <title>Pet ID Tag | JakeBitt 3D Prints</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script data-cfasync="false" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+    </style>
 </head>
 <body class="bg-slate-100 min-h-screen p-4 font-sans flex flex-col items-center">
-    <div id="main-card" class="bg-white w-full max-w-md rounded-[3rem] shadow-2xl border border-white overflow-hidden text-center">
+    
+    <div class="w-full max-w-md mb-6">
+        <div class="bg-white p-2 rounded-2xl shadow-md flex gap-2 border border-slate-200">
+            <input id="search-input" type="text" placeholder="Enter Tag ID" class="flex-1 p-3 rounded-xl bg-slate-50 border-none font-bold text-sm uppercase outline-none text-black">
+            <button onclick="searchTag()" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs uppercase">Search</button>
+        </div>
+    </div>
+
+    <div id="main-card" class="glass w-full max-w-md rounded-[3rem] shadow-2xl border border-white overflow-hidden text-center">
         <div id="lost-banner" class="hidden bg-red-600 text-white py-3 font-black animate-pulse uppercase">🚨 Pet is Lost! 🚨</div>
+        
         <div class="p-8">
             <div class="w-32 h-32 bg-slate-200 rounded-full mx-auto mb-4 border-4 border-white shadow-lg flex items-center justify-center text-5xl">🐾</div>
             <h1 id="pet-name" class="text-4xl font-black text-slate-800 italic">Welcome</h1>
             <p id="tag-id-display" class="text-slate-400 font-mono text-sm uppercase mt-1">Ready to Scan</p>
         </div>
+
         <div class="px-8 pb-10 space-y-4 text-left">
             <a id="call-btn" href="#" class="hidden flex items-center justify-center gap-3 bg-green-500 text-white text-xl font-bold py-5 rounded-3xl shadow-lg active:scale-95 transition-all">📞 Call Owner</a>
-            <div class="bg-slate-50 p-6 rounded-3xl border border-slate-200 text-black">
+            
+            <div class="bg-white/50 p-6 rounded-3xl border border-slate-200 text-black">
                 <h3 class="text-xs font-black text-slate-400 uppercase mb-1">Information</h3>
                 <p id="pet-address" class="text-slate-700 font-medium italic">Please scan a tag or search above.</p>
             </div>
+
             <a id="claim-section" href="/login.html" class="hidden block w-full text-center bg-amber-400 text-amber-900 font-black py-4 rounded-3xl border-2 border-amber-500 border-dashed">✨ SET UP THIS TAG</a>
         </div>
     </div>
 
     <script data-cfasync="false">
+        // CORRECTED URL: removed the extra 'n' from your screenshot
         const supabaseUrl = 'https://aoiocladruutzrwwhdlh.supabase.co';
         const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
         
-        // Forced Header Fix for 406 Errors
+        // Initializing with explicit headers to ensure incognito compatibility
         const petSupabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
             global: { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } }
         });
         
+        function searchTag() {
+            const id = document.getElementById('search-input').value.trim().toUpperCase();
+            if (id) window.location.href = `/?id=${id}`;
+        }
+
         async function init() {
             const urlParams = new URLSearchParams(window.location.search);
             const tagId = urlParams.get('id');
@@ -41,7 +62,7 @@
 
             document.getElementById('tag-id-display').innerText = `Tag ID: ${tagId}`;
 
-            // Try to get the pet data
+            // Fetching pet data from Supabase
             const { data, error } = await petSupabase
                 .from('pets')
                 .select('*')
@@ -50,30 +71,40 @@
 
             if (error) {
                 console.error("Supabase Error:", error);
-                document.getElementById('pet-address').innerText = "System error. Please try again later.";
+                document.getElementById('pet-address').innerText = "Connection error. Please refresh.";
                 return;
             }
 
             if (data) {
+                // Update UI with Pet Data
                 document.getElementById('pet-name').innerText = data.pet_name || "New Tag Found!";
                 document.getElementById('pet-address').innerText = data.address || "This tag has not been set up yet.";
                 
+                // Show Call Button if phone exists
                 if (data.owner_phone) {
                     document.getElementById('call-btn').classList.remove('hidden');
                     document.getElementById('call-btn').href = `tel:${data.owner_phone}`;
                 }
                 
-                if (data.is_lost) document.getElementById('lost-banner').classList.remove('hidden');
+                // Show Lost Banner if pet is marked lost
+                if (data.is_lost) {
+                    document.getElementById('lost-banner').classList.remove('hidden');
+                }
                 
-                // If there's no owner, show the "Setup" button
+                // Show Claim Button ONLY if there is no owner yet
                 if (!data.owner_id) {
                     document.getElementById('claim-section').classList.remove('hidden');
+                } else {
+                    document.getElementById('claim-section').classList.add('hidden');
                 }
             } else {
+                // No tag found in database
                 document.getElementById('pet-name').innerText = "Tag Not Found";
                 document.getElementById('pet-address').innerText = "This Tag ID does not exist in our system.";
             }
         }
+
+        // Run on page load
         init();
     </script>
 </body>
