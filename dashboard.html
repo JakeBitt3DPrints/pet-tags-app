@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script data-cfasync="false" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans pb-20">
+<body class="bg-slate-50 min-h-screen font-sans pb-20 text-slate-900">
     <div class="max-w-md mx-auto p-6">
         <header class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold italic text-slate-800">My Pack</h1>
@@ -19,9 +19,9 @@
         </div>
 
         <div class="mt-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-200">
-            <h3 class="font-black text-sm uppercase mb-4 text-slate-400">Add New Tag</h3>
+            <h3 class="font-black text-sm uppercase mb-4 text-slate-400 tracking-widest">Add New Tag</h3>
             <input id="new-tag-id" type="text" placeholder="e.g. TEST-8035" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 border-none font-bold outline-none text-black">
-            <button id="claim-btn" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all">LINK NEW TAG</button>
+            <button id="claim-btn" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all uppercase">Link New Tag</button>
         </div>
     </div>
 
@@ -30,8 +30,10 @@
         const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
         const petSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+        // 1. Initialize Dashboard
         async function initDashboard() {
-            await new Promise(r => setTimeout(r, 600)); // Wait for session recovery
+            // Wait for session
+            await new Promise(r => setTimeout(r, 800)); 
             const { data: { user } } = await petSupabase.auth.getUser();
 
             if (!user) {
@@ -41,6 +43,7 @@
             loadPets(user.id);
         }
 
+        // 2. Load Existing Pets
         async function loadPets(userId) {
             const { data: pets, error } = await petSupabase
                 .from('pets')
@@ -48,68 +51,92 @@
                 .eq('owner_id', userId);
 
             const container = document.getElementById('pet-container');
-            if (error) { console.error(error); return; }
+            if (error) { console.error("Load Error:", error); return; }
 
             if (!pets || pets.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 text-slate-400 italic">No tags linked. Enter an ID below to start.</div>`;
+                container.innerHTML = `<div class="text-center py-10 text-slate-400 italic">No tags linked yet. Enter an ID below to start!</div>`;
                 return;
             }
 
             container.innerHTML = pets.map(pet => `
-                <div class="bg-white rounded-[2.5rem] shadow-xl border border-white overflow-hidden text-black mb-4">
+                <div class="bg-white rounded-[2.5rem] shadow-xl border border-white overflow-hidden mb-6">
                     <div class="${pet.is_lost ? 'bg-red-600' : 'bg-slate-900'} p-4 text-white flex justify-between items-center">
-                        <span class="font-black ml-2 uppercase">${pet.tag_id}</span>
+                        <span class="font-black ml-2 uppercase tracking-tighter">${pet.tag_id}</span>
                         <div class="flex items-center gap-3">
                             <span class="text-[10px] font-black uppercase">${pet.is_lost ? 'Lost' : 'Safe'}</span>
-                            <input type="checkbox" onclick="toggleLost('${pet.id}', ${pet.is_lost})" ${pet.is_lost ? 'checked' : ''} class="w-5 h-5 accent-white">
+                            <input type="checkbox" onclick="toggleLost('${pet.id}', ${pet.is_lost})" ${pet.is_lost ? 'checked' : ''} class="w-5 h-5 accent-white cursor-pointer">
                         </div>
                     </div>
                     <div class="p-6 space-y-4">
-                        <input id="name-${pet.id}" type="text" value="${pet.pet_name || ''}" placeholder="Pet Name" class="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-black">
-                        <input id="phone-${pet.id}" type="text" value="${pet.owner_phone || ''}" placeholder="Phone Number" class="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-black">
-                        <textarea id="addr-${pet.id}" placeholder="Address/Message" class="w-full p-3 bg-slate-50 rounded-xl border-none text-sm h-20 text-black">${pet.address || ''}</textarea>
-                        <button onclick="savePet('${pet.id}')" class="w-full bg-green-500 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-sm">Save Changes</button>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Pet Name</label>
+                            <input id="name-${pet.id}" type="text" value="${pet.pet_name || ''}" class="w-full p-3 bg-slate-50 rounded-xl border-none font-bold">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Emergency Phone</label>
+                            <input id="phone-${pet.id}" type="text" value="${pet.owner_phone || ''}" class="w-full p-3 bg-slate-50 rounded-xl border-none font-bold">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Home Address / Msg</label>
+                            <textarea id="addr-${pet.id}" class="w-full p-3 bg-slate-50 rounded-xl border-none text-sm h-20">${pet.address || ''}</textarea>
+                        </div>
+                        <button onclick="savePet('${pet.id}')" class="w-full bg-green-500 text-white font-black py-4 rounded-2xl shadow-md uppercase tracking-widest text-sm active:scale-95 transition-all">Save Changes</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        // --- THE UPDATED CLAIM LOGIC ---
+        // 3. The Link/Claim Logic
         document.getElementById('claim-btn').addEventListener('click', async () => {
             const tagInput = document.getElementById('new-tag-id');
-            const tagId = tagInput.value.trim().toUpperCase();
+            const rawId = tagInput.value.trim();
             const btn = document.getElementById('claim-btn');
 
-            if (!tagId) return;
+            if (!rawId) { alert("Enter a Tag ID!"); return; }
 
-            btn.innerText = "LINKING...";
+            btn.innerText = "VERIFYING...";
             btn.disabled = true;
 
             const { data: { user } } = await petSupabase.auth.getUser();
 
-            // Try to Update: Match tag_id AND ensure owner_id is NULL
-            const { data, error } = await petSupabase
+            // STEP A: Check if the tag even exists in the database
+            const { data: foundTag, error: findError } = await petSupabase
                 .from('pets')
-                .update({ owner_id: user.id })
-                .eq('tag_id', tagId)
-                .is('owner_id', null)
-                .select();
+                .select('tag_id, owner_id')
+                .eq('tag_id', rawId)
+                .maybeSingle();
 
-            if (error) {
-                console.error("Link Error:", error);
-                alert("Database Error: " + error.message);
-            } else if (data && data.length > 0) {
-                alert("Success! Tag added to your pack.");
-                tagInput.value = "";
-                loadPets(user.id);
+            if (findError) {
+                alert("Database Error: " + findError.message);
+            } else if (!foundTag) {
+                alert("ID Not Found: '" + rawId + "' does not exist in the system. Did you create it in the Admin panel?");
+            } else if (foundTag.owner_id) {
+                alert("Already Claimed: This tag belongs to another account.");
             } else {
-                alert("Could not link tag. Check the ID or it may already be claimed.");
+                // STEP B: The tag exists and is empty. Try to claim it.
+                const { data, error } = await petSupabase
+                    .from('pets')
+                    .update({ owner_id: user.id })
+                    .eq('tag_id', rawId)
+                    .is('owner_id', null)
+                    .select();
+
+                if (error) {
+                    alert("Claim Failed: " + error.message);
+                } else if (data && data.length > 0) {
+                    alert("Success! Tag linked.");
+                    tagInput.value = "";
+                    loadPets(user.id);
+                } else {
+                    alert("Could not update record. Check your Supabase Policies.");
+                }
             }
 
             btn.innerText = "LINK NEW TAG";
             btn.disabled = false;
         });
 
+        // 4. Utilities
         async function savePet(id) {
             const updates = {
                 pet_name: document.getElementById(`name-${id}`).value,
@@ -117,12 +144,13 @@
                 address: document.getElementById(`addr-${id}`).value
             };
             const { error } = await petSupabase.from('pets').update(updates).eq('id', id);
-            if (error) alert("Save failed!"); else alert("Saved successfully!");
+            if (error) alert("Save failed!"); else alert("Successfully Saved!");
         }
 
         async function toggleLost(id, currentStatus) {
             await petSupabase.from('pets').update({ is_lost: !currentStatus }).eq('id', id);
-            initDashboard();
+            const { data: { user } } = await petSupabase.auth.getUser();
+            loadPets(user.id);
         }
 
         document.getElementById('logout-btn').addEventListener('click', async () => {
