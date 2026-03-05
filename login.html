@@ -5,35 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Pet Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script data-cfasync="false" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
     <div class="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center">
         <div class="text-5xl mb-4">🔑</div>
         <h1 class="text-3xl font-black mb-2 italic text-slate-800">Pet Portal</h1>
         <p class="text-slate-500 mb-8 text-sm">Enter your email to receive a login link.</p>
-        <input id="email" type="email" placeholder="email@example.com" class="w-full p-5 rounded-2xl border border-slate-200 bg-slate-50 font-bold mb-4 outline-none">
+        <input id="email" type="email" placeholder="email@example.com" class="w-full p-5 rounded-2xl border border-slate-200 bg-slate-50 font-bold mb-4 outline-none text-black">
         <button id="login-btn" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-lg hover:bg-slate-800 uppercase tracking-widest transition-all">Send Login Link</button>
         <p id="msg" class="mt-6 text-sm font-bold text-blue-600"></p>
     </div>
 
-    <script>
+    <script data-cfasync="false">
+        // We use a unique name 'petSupabase' so Cloudflare doesn't get confused
         const supabaseUrl = 'https://aoiocladruutzrwwhdlh.supabase.co';
         const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const petSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         document.getElementById('login-btn').addEventListener('click', async () => {
-            const email = document.getElementById('email').value.trim();
+            const emailInput = document.getElementById('email');
             const btn = document.getElementById('login-btn');
             const msg = document.getElementById('msg');
+            const email = emailInput.value.trim();
 
-            if (!email) return alert("Enter an email!");
+            if (!email) {
+                alert("Please enter your email!");
+                return;
+            }
+
             btn.innerText = "SENDING...";
             btn.disabled = true;
 
-            const { error } = await supabase.auth.signInWithOtp({
+            const { error } = await petSupabase.auth.signInWithOtp({
                 email: email,
-                options: { emailRedirectTo: window.location.origin + '/dashboard.html' }
+                options: { 
+                    emailRedirectTo: window.location.origin + '/dashboard.html' 
+                }
             });
 
             if (error) {
