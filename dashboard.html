@@ -3,19 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pet Dashboard | JakeBitt3DPrints</title>
+    <title>Pet Dashboard | JakeBitt 3D</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script data-cfasync="false" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .pet-details { transition: max-height 0.3s ease-out; overflow: hidden; }
-        .is-closed { max-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
-        .is-open { max-height: 1000px; }
+        .accordion-content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease-out; }
+        .accordion-content > div { overflow: hidden; }
+        .is-open { grid-template-rows: 1fr; }
+        .arrow-icon { transition: transform 0.3s ease; }
+        .is-open-arrow { transform: rotate(180deg); }
+        #pack-name-input { background: transparent; border: none; outline: none; width: 100%; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans pb-20 text-slate-900">
     <div class="max-w-md mx-auto p-6">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold italic text-slate-800 tracking-tighter">My Pets</h1>
+        <header class="flex justify-between items-start mb-8">
+            <div class="flex-1 mr-4">
+                <div class="flex items-center group">
+                    <div id="title-container" class="relative flex-1">
+                        <h1 id="pack-name-display" class="text-3xl font-bold italic text-slate-800 tracking-tighter truncate">My Pack</h1>
+                        <input id="pack-name-input" type="text" class="hidden text-3xl font-bold italic text-slate-800 tracking-tighter border-b-2 border-blue-400" maxlength="25">
+                    </div>
+                    <button id="edit-pack-name" class="ml-2 p-1 text-slate-300 hover:text-blue-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+                    </button>
+                </div>
+            </div>
             <button id="logout-btn" class="text-xs font-bold text-slate-400 border border-slate-300 px-3 py-1 rounded-full uppercase">Logout</button>
         </header>
 
@@ -23,10 +36,10 @@
             <p id="loading-text" class="text-slate-400 animate-pulse text-center italic">Syncing your tags...</p>
         </div>
 
-        <div class="mt-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-200">
-            <h3 class="font-black text-sm uppercase mb-4 text-slate-400 tracking-widest text-center">Add New Tag</h3>
+        <div class="mt-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-200 text-center">
+            <h3 class="font-black text-sm uppercase mb-4 text-slate-400 tracking-widest">Add New Tag</h3>
             <input id="new-tag-id" type="text" placeholder="e.g. TEST-8035" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 border-none font-bold outline-none text-black text-center">
-            <button id="claim-btn" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all uppercase">Link Tag to Account</button>
+            <button id="claim-btn" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all uppercase">Link Tag</button>
         </div>
     </div>
 
@@ -35,19 +48,64 @@
         const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
         const petSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+        let openIds = new Set();
+        let currentUser = null;
+
+        // UI Elements
+        const packDisplay = document.getElementById('pack-name-display');
+        const packInput = document.getElementById('pack-name-input');
+        const editBtn = document.getElementById('edit-pack-name');
+
+        // 1. DATABASE PACK NAME LOGIC
+        async function fetchPackName(userId) {
+            const { data, error } = await petSupabase.from('profiles').select('pack_name').eq('id', userId).maybeSingle();
+            if (data) {
+                packDisplay.innerText = data.pack_name;
+            } else if (!error) {
+                // If no profile exists yet, create one
+                await petSupabase.from('profiles').insert({ id: userId, pack_name: 'My Pack' });
+            }
+        }
+
+        async function savePackName() {
+            const newName = packInput.value.trim() || "My Pack";
+            packDisplay.innerText = newName;
+            packInput.classList.add('hidden');
+            packDisplay.classList.remove('hidden');
+
+            const { error } = await petSupabase.from('profiles').upsert({ id: currentUser.id, pack_name: newName });
+            if (error) console.error("Error saving pack name:", error);
+        }
+
+        editBtn.addEventListener('click', () => {
+            if (packInput.classList.contains('hidden')) {
+                packInput.value = packDisplay.innerText;
+                packDisplay.classList.add('hidden');
+                packInput.classList.remove('hidden');
+                packInput.focus();
+            } else {
+                savePackName();
+            }
+        });
+
+        packInput.addEventListener('blur', savePackName);
+        packInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') savePackName(); });
+
+        // 2. DASHBOARD INIT
         async function initDashboard() {
-            await new Promise(r => setTimeout(r, 800)); 
             const { data: { user } } = await petSupabase.auth.getUser();
             if (!user) { window.location.href = "/login.html"; return; }
+            currentUser = user;
 
+            await fetchPackName(user.id);
+            
             const urlParams = new URLSearchParams(window.location.search);
             const autoTagId = urlParams.get('claim');
-
             if (autoTagId) {
-                const { data } = await petSupabase.from('pets').update({ owner_id: user.id })
-                    .eq('tag_id', autoTagId).is('owner_id', null).select();
-                if (data && data.length > 0) {
+                const { data } = await petSupabase.from('pets').update({ owner_id: user.id }).eq('tag_id', autoTagId).is('owner_id', null).select();
+                if (data) {
                     window.history.replaceState({}, document.title, "/dashboard.html");
+                    openIds.add(data[0].id);
                 }
             }
             loadPets(user.id);
@@ -56,64 +114,57 @@
         async function loadPets(userId) {
             const { data: pets } = await petSupabase.from('pets').select('*').eq('owner_id', userId).order('created_at', { ascending: false });
             const container = document.getElementById('pet-container');
-            
             if (!pets || pets.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 text-slate-400 italic">No tags linked yet.</div>`;
+                container.innerHTML = `<p class="text-center py-10 text-slate-400 italic">No tags linked.</p>`;
                 return;
             }
-
-            container.innerHTML = pets.map(pet => `
-                <div class="bg-white rounded-[2rem] shadow-md border border-slate-100 overflow-hidden mb-4">
+            container.innerHTML = pets.map(pet => {
+                const isOpen = openIds.has(pet.id);
+                return `
+                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden mb-4 ${isOpen ? 'ring-2 ring-blue-50' : ''}">
                     <div onclick="toggleFold('${pet.id}')" class="p-5 flex justify-between items-center cursor-pointer hover:bg-slate-50 transition-colors">
                         <div>
                             <h2 class="text-xl font-black text-slate-800">${pet.pet_name || 'Unnamed Pet'}</h2>
                             <p class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">${pet.tag_id}</p>
                         </div>
                         <div class="flex items-center gap-4">
-                             ${pet.is_lost ? '<span class="bg-red-100 text-red-600 text-[10px] font-black px-2 py-1 rounded-md uppercase">Lost</span>' : ''}
-                             <span id="arrow-${pet.id}" class="text-slate-300 font-bold">▼</span>
+                             ${pet.is_lost ? '<span class="bg-red-500 text-white text-[9px] font-black px-2 py-1 rounded-md uppercase animate-pulse">Lost</span>' : ''}
+                             <span id="arrow-${pet.id}" class="arrow-icon text-slate-300 font-bold ${isOpen ? 'is-open-arrow' : ''}">▼</span>
                         </div>
                     </div>
-
-                    <div id="details-${pet.id}" class="pet-details is-closed px-6 pb-6 space-y-4 border-t border-slate-50 pt-4">
-                        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl mb-2">
-                            <span class="text-xs font-black uppercase text-slate-500">Mark pet as lost?</span>
-                            <input type="checkbox" onclick="toggleLost('${pet.id}', ${pet.is_lost})" ${pet.is_lost ? 'checked' : ''} class="w-6 h-6 accent-red-600 cursor-pointer">
-                        </div>
-
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Pet Name</label>
-                            <input id="name-${pet.id}" type="text" value="${pet.pet_name || ''}" class="w-full p-3 bg-slate-100 rounded-xl border-none font-bold text-black">
-                        </div>
-
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Owner Phone</label>
-                            <input id="phone-${pet.id}" type="text" value="${pet.owner_phone || ''}" class="w-full p-3 bg-slate-100 rounded-xl border-none font-bold text-black">
-                        </div>
-
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">Home Address / Info</label>
-                            <textarea id="addr-${pet.id}" class="w-full p-3 bg-slate-100 rounded-xl border-none text-sm h-20 text-black">${pet.address || ''}</textarea>
-                        </div>
-
-                        <div class="flex gap-2">
-                            <button id="save-btn-${pet.id}" onclick="savePet('${pet.id}')" class="flex-1 bg-green-500 text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest transition-all active:scale-95">Save Changes</button>
-                            <button onclick="unlinkTag('${pet.id}', '${pet.tag_id}')" class="px-4 bg-slate-100 text-slate-400 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
+                    <div id="details-${pet.id}" class="accordion-content ${isOpen ? 'is-open' : ''}">
+                        <div class="px-6 pb-6 space-y-4 border-t border-slate-50 pt-4">
+                            <div class="flex items-center justify-between bg-slate-50 p-4 rounded-2xl">
+                                <span class="text-xs font-black uppercase text-slate-500">Mark pet as lost?</span>
+                                <input type="checkbox" onclick="toggleLost('${pet.id}', ${pet.is_lost})" ${pet.is_lost ? 'checked' : ''} class="w-6 h-6 accent-red-600">
+                            </div>
+                            <input id="name-${pet.id}" type="text" value="${pet.pet_name || ''}" placeholder="Pet Name" class="w-full p-3 bg-slate-100 rounded-xl font-bold">
+                            <input id="phone-${pet.id}" type="text" value="${pet.owner_phone || ''}" placeholder="Phone Number" class="w-full p-3 bg-slate-100 rounded-xl font-bold">
+                            <textarea id="addr-${pet.id}" placeholder="Address" class="w-full p-3 bg-slate-100 rounded-xl text-sm h-24">${pet.address || ''}</textarea>
+                            <div class="flex gap-2">
+                                <button id="save-btn-${pet.id}" onclick="savePet('${pet.id}')" class="flex-1 bg-green-500 text-white font-black py-4 rounded-2xl uppercase text-xs">Save Changes</button>
+                                <button onclick="unlinkTag('${pet.id}', '${pet.tag_id}', '${pet.pet_name || pet.tag_id}')" class="px-5 bg-slate-50 text-slate-300 rounded-2xl hover:text-red-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         function toggleFold(id) {
             const el = document.getElementById(`details-${id}`);
             const arrow = document.getElementById(`arrow-${id}`);
-            el.classList.toggle('is-closed');
-            arrow.innerText = el.classList.contains('is-closed') ? '▼' : '▲';
+            if (el.classList.contains('is-open')) {
+                el.classList.remove('is-open');
+                arrow.classList.remove('is-open-arrow');
+                openIds.delete(id);
+            } else {
+                el.classList.add('is-open');
+                arrow.classList.add('is-open-arrow');
+                openIds.add(id);
+            }
         }
 
         async function savePet(id) {
@@ -123,47 +174,39 @@
                 owner_phone: document.getElementById(`phone-${id}`).value,
                 address: document.getElementById(`addr-${id}`).value
             };
-            
             const { error } = await petSupabase.from('pets').update(updates).eq('id', id);
-            
             if (!error) {
-                const originalText = btn.innerText;
                 btn.innerText = "SAVED! ✓";
                 btn.classList.replace('bg-green-500', 'bg-blue-600');
                 setTimeout(() => {
-                    btn.innerText = originalText;
+                    btn.innerText = "SAVE CHANGES";
                     btn.classList.replace('bg-blue-600', 'bg-green-500');
-                    const { data: { user } } = petSupabase.auth.getUser().then(({data}) => loadPets(data.user.id));
-                }, 2000);
-            } else {
-                alert("Error saving: " + error.message);
+                    loadPets(currentUser.id);
+                }, 1500);
             }
         }
 
-        async function unlinkTag(id, tagId) {
-            if (confirm(`Are you sure you want to unlink ${tagId}? This will remove it from your account.`)) {
-                const { error } = await petSupabase.from('pets').update({ owner_id: null }).eq('id', id);
-                if (!error) {
-                    const { data: { user } } = await petSupabase.auth.getUser();
-                    loadPets(user.id);
-                }
+        async function unlinkTag(id, tagId, petName) {
+            if (confirm(`Unlink ${petName}?`)) {
+                await petSupabase.from('pets').update({ owner_id: null }).eq('id', id);
+                openIds.delete(id);
+                loadPets(currentUser.id);
             }
         }
 
         async function toggleLost(id, currentStatus) {
             await petSupabase.from('pets').update({ is_lost: !currentStatus }).eq('id', id);
-            const { data: { user } } = await petSupabase.auth.getUser();
-            loadPets(user.id);
+            loadPets(currentUser.id);
         }
 
         document.getElementById('claim-btn').addEventListener('click', async () => {
-            const tagId = document.getElementById('new-tag-id').value.trim();
-            const { data: { user } } = await petSupabase.auth.getUser();
-            const { data } = await petSupabase.from('pets').update({ owner_id: user.id }).eq('tag_id', tagId).is('owner_id', null).select();
+            const input = document.getElementById('new-tag-id');
+            const { data } = await petSupabase.from('pets').update({ owner_id: currentUser.id }).eq('tag_id', input.value.trim()).is('owner_id', null).select();
             if (data && data.length > 0) { 
-                document.getElementById('new-tag-id').value = "";
-                loadPets(user.id); 
-            } else { alert("Could not link tag. Check the ID."); }
+                input.value = "";
+                openIds.add(data[0].id);
+                loadPets(currentUser.id); 
+            } else { alert("Could not link tag."); }
         });
 
         document.getElementById('logout-btn').addEventListener('click', async () => {
