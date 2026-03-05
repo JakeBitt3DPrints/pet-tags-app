@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pet Dashboard | JakeBitt 3D</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script data-cfasync="false" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans pb-20">
     <div class="max-w-md mx-auto p-6">
@@ -14,23 +14,23 @@
             <button onclick="logout()" class="text-xs font-bold text-slate-400 border border-slate-300 px-3 py-1 rounded-full uppercase">Logout</button>
         </header>
         <div id="pet-container" class="space-y-6"></div>
-        <div class="mt-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-200 text-black">
+        <div class="mt-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-200">
             <h3 class="font-black text-sm uppercase mb-4 text-slate-400">Add New Tag</h3>
-            <input id="new-tag-id" type="text" placeholder="Enter ID (e.g. DOG-1234)" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 border-none font-bold outline-none">
+            <input id="new-tag-id" type="text" placeholder="Enter ID (e.g. DOG-1234)" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 border-none font-bold outline-none text-black">
             <button onclick="claimTag()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all">LINK NEW TAG</button>
         </div>
     </div>
 
-    <script>
+    <script data-cfasync="false">
         const supabaseUrl = 'https://aoiocladruutzrwwhdlh.supabase.co';
         const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const petSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         async function loadDashboard() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await petSupabase.auth.getUser();
             if (!user) { window.location.href = "/login.html"; return; }
 
-            const { data: pets } = await supabase.from('pets').select('*').eq('owner_id', user.id);
+            const { data: pets } = await petSupabase.from('pets').select('*').eq('owner_id', user.id);
             const container = document.getElementById('pet-container');
 
             if (!pets || pets.length === 0) {
@@ -48,9 +48,9 @@
                         </div>
                     </div>
                     <div class="p-8 space-y-5">
-                        <input id="name-${pet.id}" type="text" value="${pet.pet_name || ''}" placeholder="Pet Name" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg">
-                        <input id="phone-${pet.id}" type="text" value="${pet.owner_phone || ''}" placeholder="Phone Number" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg">
-                        <textarea id="addr-${pet.id}" placeholder="Address/Message" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-medium text-sm h-24">${pet.address || ''}</textarea>
+                        <input id="name-${pet.id}" type="text" value="${pet.pet_name || ''}" placeholder="Pet Name" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg text-black">
+                        <input id="phone-${pet.id}" type="text" value="${pet.owner_phone || ''}" placeholder="Phone Number" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg text-black">
+                        <textarea id="addr-${pet.id}" placeholder="Address/Message" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-medium text-sm h-24 text-black">${pet.address || ''}</textarea>
                         <button onclick="savePet('${pet.id}')" class="w-full bg-green-500 text-white font-black py-5 rounded-3xl shadow-xl uppercase tracking-widest">Save & Finish</button>
                     </div>
                 </div>
@@ -63,23 +63,23 @@
                 owner_phone: document.getElementById(`phone-${id}`).value,
                 address: document.getElementById(`addr-${id}`).value
             };
-            const { error } = await supabase.from('pets').update(updates).eq('id', id);
+            const { error } = await petSupabase.from('pets').update(updates).eq('id', id);
             if (error) alert("Error!"); else window.location.href = "/success.html";
         }
 
         async function toggleLost(id, currentStatus) {
-            await supabase.from('pets').update({ is_lost: !currentStatus }).eq('id', id);
+            await petSupabase.from('pets').update({ is_lost: !currentStatus }).eq('id', id);
             loadDashboard();
         }
 
         async function claimTag() {
             const tagId = document.getElementById('new-tag-id').value.toUpperCase().trim();
-            const { data: { user } } = await supabase.auth.getUser();
-            const { error } = await supabase.from('pets').update({ owner_id: user.id }).eq('tag_id', tagId).is('owner_id', null);
+            const { data: { user } } = await petSupabase.auth.getUser();
+            const { error } = await petSupabase.from('pets').update({ owner_id: user.id }).eq('tag_id', tagId).is('owner_id', null);
             if (error) alert("Tag already claimed or not found."); else loadDashboard();
         }
 
-        async function logout() { await supabase.auth.signOut(); window.location.href = "/login.html"; }
+        async function logout() { await petSupabase.auth.signOut(); window.location.href = "/login.html"; }
         loadDashboard();
     </script>
 </body>
