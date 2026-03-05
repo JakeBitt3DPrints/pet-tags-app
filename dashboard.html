@@ -13,20 +13,18 @@
             <h1 class="text-3xl font-bold italic text-slate-800">My Pack</h1>
             <button onclick="logout()" class="text-xs font-bold text-slate-400 border border-slate-300 px-3 py-1 rounded-full uppercase">Logout</button>
         </header>
-
-        <div id="pet-container" class="space-y-6">
-            <p class="text-slate-400 animate-pulse text-center italic">Finding your pets...</p>
-        </div>
-
-        <div class="mt-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-200">
-            <h3 class="font-black text-sm uppercase tracking-widest mb-4 text-slate-400">Add New Tag</h3>
-            <input id="new-tag-id" type="text" placeholder="Enter ID (e.g. DOG-1234)" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 border-none font-bold">
-            <button onclick="claimTag()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">LINK NEW TAG</button>
+        <div id="pet-container" class="space-y-6"></div>
+        <div class="mt-12 p-8 bg-white rounded-[2.5rem] shadow-sm border border-slate-200 text-black">
+            <h3 class="font-black text-sm uppercase mb-4 text-slate-400">Add New Tag</h3>
+            <input id="new-tag-id" type="text" placeholder="Enter ID (e.g. DOG-1234)" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 border-none font-bold outline-none">
+            <button onclick="claimTag()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all">LINK NEW TAG</button>
         </div>
     </div>
 
     <script>
-        const supabase = supabase.createClient('https://aoiocladruutzrwwndlh.supabase.co', 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO');
+        const supabaseUrl = 'https://aoiocladruutzrwwhdlh.supabase.co';
+        const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         async function loadDashboard() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -36,33 +34,24 @@
             const container = document.getElementById('pet-container');
 
             if (!pets || pets.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 text-slate-400 italic font-medium">No pets linked yet. Enter a Tag ID below to start!</div>`;
+                container.innerHTML = `<div class="text-center py-10 text-slate-400 italic font-medium">No pets linked yet.</div>`;
                 return;
             }
 
             container.innerHTML = pets.map(pet => `
-                <div class="bg-white rounded-[2.5rem] shadow-xl border border-white overflow-hidden">
-                    <div class="${pet.is_lost ? 'bg-red-600' : 'bg-slate-900'} p-4 text-white flex justify-between items-center transition-colors">
-                        <span class="font-black tracking-tighter uppercase ml-2">${pet.tag_id}</span>
+                <div class="bg-white rounded-[2.5rem] shadow-xl border border-white overflow-hidden text-black">
+                    <div class="${pet.is_lost ? 'bg-red-600' : 'bg-slate-900'} p-4 text-white flex justify-between items-center">
+                        <span class="font-black ml-2">${pet.tag_id}</span>
                         <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-black uppercase tracking-widest">${pet.is_lost ? 'Lost Mode On' : 'Status: Safe'}</span>
-                            <input type="checkbox" onchange="toggleLost('${pet.id}', ${pet.is_lost})" ${pet.is_lost ? 'checked' : ''} class="w-6 h-6 cursor-pointer accent-white">
+                            <span class="text-[10px] font-black uppercase">${pet.is_lost ? 'Lost' : 'Safe'}</span>
+                            <input type="checkbox" onchange="toggleLost('${pet.id}', ${pet.is_lost})" ${pet.is_lost ? 'checked' : ''} class="w-6 h-6 accent-white cursor-pointer">
                         </div>
                     </div>
                     <div class="p-8 space-y-5">
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Pet Name</label>
-                            <input id="name-${pet.id}" type="text" value="${pet.pet_name || ''}" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Emergency Phone</label>
-                            <input id="phone-${pet.id}" type="text" value="${pet.owner_phone || ''}" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">Home Address / Message</label>
-                            <textarea id="addr-${pet.id}" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-medium text-sm h-24">${pet.address || ''}</textarea>
-                        </div>
-                        <button onclick="savePet('${pet.id}')" class="w-full bg-green-500 text-white font-black py-5 rounded-3xl shadow-xl active:scale-95 transition-transform uppercase tracking-widest">Save & Finish</button>
+                        <input id="name-${pet.id}" type="text" value="${pet.pet_name || ''}" placeholder="Pet Name" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg">
+                        <input id="phone-${pet.id}" type="text" value="${pet.owner_phone || ''}" placeholder="Phone Number" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-lg">
+                        <textarea id="addr-${pet.id}" placeholder="Address/Message" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-medium text-sm h-24">${pet.address || ''}</textarea>
+                        <button onclick="savePet('${pet.id}')" class="w-full bg-green-500 text-white font-black py-5 rounded-3xl shadow-xl uppercase tracking-widest">Save & Finish</button>
                     </div>
                 </div>
             `).join('');
@@ -75,8 +64,7 @@
                 address: document.getElementById(`addr-${id}`).value
             };
             const { error } = await supabase.from('pets').update(updates).eq('id', id);
-            if (error) alert("Save failed!");
-            else window.location.href = "/success.html"; // Redirect to success page
+            if (error) alert("Error!"); else window.location.href = "/success.html";
         }
 
         async function toggleLost(id, currentStatus) {
@@ -88,8 +76,7 @@
             const tagId = document.getElementById('new-tag-id').value.toUpperCase().trim();
             const { data: { user } } = await supabase.auth.getUser();
             const { error } = await supabase.from('pets').update({ owner_id: user.id }).eq('tag_id', tagId).is('owner_id', null);
-            if (error) alert("Tag not found or already claimed.");
-            else loadDashboard();
+            if (error) alert("Tag already claimed or not found."); else loadDashboard();
         }
 
         async function logout() { await supabase.auth.signOut(); window.location.href = "/login.html"; }
