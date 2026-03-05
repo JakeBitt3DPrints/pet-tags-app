@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pet ID Tag | JakeBitt 3D Prints</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script data-cfasync="false" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>.glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }</style>
 </head>
 <body class="bg-slate-100 min-h-screen p-4 font-sans flex flex-col items-center">
     <div class="w-full max-w-md mb-6">
         <div class="bg-white p-2 rounded-2xl shadow-md flex gap-2 border border-slate-200">
-            <input id="search-input" type="text" placeholder="Enter Tag ID" class="flex-1 p-3 rounded-xl bg-slate-50 border-none font-bold text-sm uppercase outline-none">
+            <input id="search-input" type="text" placeholder="Enter Tag ID" class="flex-1 p-3 rounded-xl bg-slate-50 border-none font-bold text-sm uppercase outline-none text-black">
             <button onclick="searchTag()" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs uppercase">Search</button>
         </div>
     </div>
@@ -33,10 +33,10 @@
         </div>
     </div>
 
-    <script>
+    <script data-cfasync="false">
         const supabaseUrl = 'https://aoiocladruutzrwwhdlh.supabase.co';
         const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const petSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
         function searchTag() {
             const id = document.getElementById('search-input').value.trim().toUpperCase();
@@ -49,7 +49,7 @@
             if (!tagId) return;
 
             document.getElementById('tag-id-display').innerText = `Tag ID: ${tagId}`;
-            const { data } = await supabase.from('pets').select('*').eq('tag_id', tagId).single();
+            const { data } = await petSupabase.from('pets').select('*').eq('tag_id', tagId).single();
 
             if (data) {
                 document.getElementById('pet-name').innerText = data.pet_name || "New Pet";
