@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login | Pet Tags</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-10 rounded-[2.5rem] shadow-xl w-full max-w-sm text-center">
+        <h1 class="text-3xl font-black mb-2 italic">Pet Portal</h1>
+        <p class="text-slate-500 mb-8 text-sm">Enter your email to manage your tags.</p>
+        <input id="email" type="email" placeholder="your@email.com" class="w-full p-4 rounded-2xl border bg-slate-50 mb-4 font-bold">
+        <button onclick="login()" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-lg">SEND LOGIN LINK</button>
+        <p id="msg" class="mt-4 text-sm font-bold text-blue-600"></p>
+    </div>
+
+    <script>
+        const supabase = supabase.createClient('https://aoiocladruutzrwwndlh.supabase.co', 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO');
+        async function login() {
+            const email = document.getElementById('email').value;
+            const { error } = await supabase.auth.signInWithOtp({ email });
+            if (error) alert(error.message);
+            else document.getElementById('msg').innerText = "Check your email for the login link!";
+        }
+    </script>
+</body>
+</html>
