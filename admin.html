@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tag Factory | JakeBitt3DPrints</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-slate-900 text-white p-8 font-sans">
+    <div class="max-w-5xl mx-auto">
+        <h1 class="text-5xl font-black text-blue-400 italic mb-10">TAG FACTORY 🛠️</h1>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div class="bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700">
+                <h2 class="text-2xl font-bold mb-4 text-white">Bulk Create Tags</h2>
+                <div class="space-y-4 text-black">
+                    <input id="prefix" type="text" placeholder="Tag Prefix (e.g. DOG)" class="w-full p-4 rounded-2xl font-bold">
+                    <input id="count" type="number" placeholder="How many to make?" class="w-full p-4 rounded-2xl font-bold">
+                    <button onclick="bulkCreate()" class="w-full bg-blue-500 text-white font-black py-4 rounded-2xl hover:bg-blue-400">GENERATE TAGS</button>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700 overflow-hidden">
+                <h2 class="text-2xl font-bold mb-4">Recent Tags & QR Codes</h2>
+                <div id="list" class="space-y-4 max-h-[400px] overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabase = supabase.createClient('https://aoiocladruutzrwwndlh.supabase.co', 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO');
+
+        async function bulkCreate() {
+            const prefix = document.getElementById('prefix').value || "PET";
+            const count = parseInt(document.getElementById('count').value) || 1;
+            const newTags = [];
+            for(let i=0; i<count; i++) {
+                const random = Math.floor(1000 + Math.random() * 9000);
+                newTags.push({ tag_id: `${prefix}-${random}` });
+            }
+            const { error } = await supabase.from('pets').insert(newTags);
+            if(error) alert(error.message);
+            else { alert("Tags Created!"); loadTags(); }
+        }
+
+        async function loadTags() {
+            const { data } = await supabase.from('pets').select('*').order('created_at', { ascending: false }).limit(20);
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+            data.forEach(tag => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between bg-slate-700 p-4 rounded-2xl mb-2";
+                div.innerHTML = `<div class="font-bold text-xl">${tag.tag_id}</div><div id="qr-${tag.tag_id}" class="bg-white p-1 rounded"></div>`;
+                list.appendChild(div);
+                new QRCode(document.getElementById(`qr-${tag.tag_id}`), {
+                    text: `https://pets.jakebitt3dprints.com/?id=${tag.tag_id}`,
+                    width: 60, height: 60
+                });
+            });
+        }
+        loadTags();
+    </script>
+</body>
+</html>
