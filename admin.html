@@ -3,18 +3,18 @@
 <head>
     <title>Tag Factory | JakeBitt 3D</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script data-cfasync="false" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-900 text-white p-8 font-sans">
     <div class="max-w-5xl mx-auto">
         <h1 class="text-5xl font-black text-blue-400 italic mb-10 text-center md:text-left">TAG FACTORY 🛠️</h1>
         <div class="grid md:grid-cols-2 gap-8">
-            <div class="bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700 text-black">
+            <div class="bg-slate-800 p-8 rounded-[2.5rem] border border-slate-700">
                 <h2 class="text-2xl font-bold mb-4 text-white">Bulk Create</h2>
                 <div class="space-y-4">
-                    <input id="prefix" type="text" placeholder="Tag Prefix (e.g. DOG)" class="w-full p-4 rounded-2xl font-bold outline-none">
-                    <input id="count" type="number" placeholder="How many?" class="w-full p-4 rounded-2xl font-bold outline-none">
+                    <input id="prefix" type="text" placeholder="Tag Prefix (e.g. DOG)" class="w-full p-4 rounded-2xl font-bold outline-none text-black">
+                    <input id="count" type="number" placeholder="How many?" class="w-full p-4 rounded-2xl font-bold outline-none text-black">
                     <button onclick="bulkCreate()" class="w-full bg-blue-500 text-white font-black py-4 rounded-2xl hover:bg-blue-400 transition-all">GENERATE TAGS</button>
                 </div>
             </div>
@@ -25,10 +25,10 @@
         </div>
     </div>
 
-    <script>
+    <script data-cfasync="false">
         const supabaseUrl = 'https://aoiocladruutzrwwhdlh.supabase.co';
         const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const petSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         async function bulkCreate() {
             const prefix = document.getElementById('prefix').value || "PET";
@@ -38,12 +38,12 @@
                 const random = Math.floor(1000 + Math.random() * 9000);
                 newTags.push({ tag_id: `${prefix}-${random}` });
             }
-            const { error } = await supabase.from('pets').insert(newTags);
+            const { error } = await petSupabase.from('pets').insert(newTags);
             if(error) alert(error.message); else { alert("Tags Created!"); loadTags(); }
         }
 
         async function loadTags() {
-            const { data } = await supabase.from('pets').select('*').order('created_at', { ascending: false }).limit(20);
+            const { data } = await petSupabase.from('pets').select('*').order('created_at', { ascending: false }).limit(20);
             const list = document.getElementById('list');
             list.innerHTML = '';
             data.forEach(tag => {
