@@ -14,7 +14,7 @@
     
     <div class="w-full max-w-md mb-6">
         <div class="bg-white p-2 rounded-2xl shadow-md flex gap-2 border border-slate-200">
-            <input id="search-input" type="text" placeholder="Enter Tag ID" class="flex-1 p-3 rounded-xl bg-slate-50 border-none font-bold text-sm uppercase outline-none text-black">
+            <input id="search-input" type="text" placeholder="Enter Tag ID" class="flex-1 p-3 rounded-xl bg-slate-50 border-none font-bold text-sm outline-none text-black">
             <button onclick="searchTag()" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs uppercase">Search</button>
         </div>
     </div>
@@ -25,7 +25,7 @@
         <div class="p-8">
             <div class="w-32 h-32 bg-slate-200 rounded-full mx-auto mb-4 border-4 border-white shadow-lg flex items-center justify-center text-5xl">🐾</div>
             <h1 id="pet-name" class="text-4xl font-black text-slate-800 italic">Welcome</h1>
-            <p id="tag-id-display" class="text-slate-400 font-mono text-sm uppercase mt-1">Ready to Scan</p>
+            <p id="tag-id-display" class="text-slate-400 font-mono text-sm mt-1">Ready to Scan</p>
         </div>
 
         <div class="px-8 pb-10 space-y-4 text-left">
@@ -33,40 +33,42 @@
             
             <div class="bg-white/50 p-6 rounded-3xl border border-slate-200 text-black">
                 <h3 class="text-xs font-black text-slate-400 uppercase mb-1">Information</h3>
-                <p id="pet-address" class="text-slate-700 font-medium italic">Please scan a tag or search above.</p>
+                <p id="pet-address" class="text-slate-700 font-medium italic">Searching for tag...</p>
             </div>
 
-            <a id="claim-section" href="/login.html" class="hidden block w-full text-center bg-amber-400 text-amber-900 font-black py-4 rounded-3xl border-2 border-amber-500 border-dashed">✨ SET UP THIS TAG</a>
+            <a id="claim-section" href="/login.html" class="hidden block w-full text-center bg-amber-400 text-amber-900 font-black py-4 rounded-3xl border-2 border-amber-500 border-dashed uppercase">✨ SET UP THIS TAG</a>
         </div>
     </div>
 
     <script data-cfasync="false">
-        // CORRECTED URL: removed the extra 'n' from your screenshot
         const supabaseUrl = 'https://aoiocladruutzrwwhdlh.supabase.co';
         const supabaseKey = 'sb_publishable_OygI1U0pRKYj_jF6KaS4Ww_XekkpecO';
         
-        // Initializing with explicit headers to ensure incognito compatibility
         const petSupabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
             global: { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } }
         });
         
         function searchTag() {
-            const id = document.getElementById('search-input').value.trim().toUpperCase();
+            const id = document.getElementById('search-input').value.trim();
             if (id) window.location.href = `/?id=${id}`;
         }
 
         async function init() {
             const urlParams = new URLSearchParams(window.location.search);
             const tagId = urlParams.get('id');
-            if (!tagId) return;
+            if (!tagId) {
+                document.getElementById('pet-address').innerText = "Please scan a tag or enter an ID above.";
+                return;
+            }
 
             document.getElementById('tag-id-display').innerText = `Tag ID: ${tagId}`;
 
-            // Fetching pet data from Supabase
+            // We use .or() to check for the ID exactly as typed OR in lowercase
+            // This fixes the "Tag Not Found" issue caused by case sensitivity
             const { data, error } = await petSupabase
                 .from('pets')
                 .select('*')
-                .eq('tag_id', tagId)
+                .or(`tag_id.eq.${tagId},tag_id.eq.${tagId.toLowerCase()}`)
                 .maybeSingle();
 
             if (error) {
@@ -76,35 +78,29 @@
             }
 
             if (data) {
-                // Update UI with Pet Data
                 document.getElementById('pet-name').innerText = data.pet_name || "New Tag Found!";
                 document.getElementById('pet-address').innerText = data.address || "This tag has not been set up yet.";
                 
-                // Show Call Button if phone exists
                 if (data.owner_phone) {
                     document.getElementById('call-btn').classList.remove('hidden');
                     document.getElementById('call-btn').href = `tel:${data.owner_phone}`;
                 }
                 
-                // Show Lost Banner if pet is marked lost
                 if (data.is_lost) {
                     document.getElementById('lost-banner').classList.remove('hidden');
                 }
                 
-                // Show Claim Button ONLY if there is no owner yet
                 if (!data.owner_id) {
                     document.getElementById('claim-section').classList.remove('hidden');
                 } else {
                     document.getElementById('claim-section').classList.add('hidden');
                 }
             } else {
-                // No tag found in database
                 document.getElementById('pet-name').innerText = "Tag Not Found";
-                document.getElementById('pet-address').innerText = "This Tag ID does not exist in our system.";
+                document.getElementById('pet-address').innerText = `ID "${tagId}" does not exist in our system.`;
             }
         }
 
-        // Run on page load
         init();
     </script>
 </body>
